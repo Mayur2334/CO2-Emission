@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CO2 Emissions Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212; /* Dark background */
+            color: #f8fafc; /* Light text for dark background */
+        }
+        .data-section {
+            background-color: #1f2937; /* Darker section background */
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            opacity: 0;
+            transition: opacity 1s ease-in-out, transform 0.5s ease-in-out;
+            transform: translateY(20px);
+        }
+        .data-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .data-section h2 {
+            color: #f8fafc; /* Light heading */
+            font-size: 1.875rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .data-section p {
+            color: #d1d5db; /* Lighter paragraph text */
+            line-height: 1.75;
+        }
+        .data-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        .data-card {
+            background-color: #2d3748; /* Darker card background */
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .data-card:hover {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.12);
+        }
+        .data-card h3 {
+            color: #fff; /* White card heading */
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .data-card p {
+            color: #e2e8f0; /* Lighter card text */
+            font-size: 1rem;
+        }
+        #historicalChartCanvas, #realtimeChartCanvas {
+            width: 100%;
+            max-height: 400px;
+            margin-top: 1.5rem;
+            border: 1px solid #4a5568; /* Darker border */
+            border-radius: 0.5rem;
+            background-color: #374151; /* Darker chart background */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        }
+        .chart-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #realtimeDataSection {
+            background-color: #1f2937; /* Darker realtime section */
+        }
+        #realtimeDataSection h2 {
+            color: #f5f5f5;
+        }
+        #realtimeDataSection p {
+            color: #d1d8e3;
+        }
+
+        .disclaimer {
+            font-size: 0.875rem;
+            color: #9ca3af;
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #2d3748; /* Darker disclaimer background */
+            border-top: 1px solid #4a5568; /* Darker border */
+            border-radius: 0.375rem;
+            text-align: center;
+        }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('.data-section');
+
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                threshold: 0.1
+            });
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</head>
+<body class="bg-gray-900">
+    <header class="bg-indigo-600 text-white py-4 text-center rounded-b-md shadow-md">
+        <h1 class="text-2xl font-semibold">CO2 Emissions Analysis</h1>
+        <p class="text-lg">Tracking and Understanding Our Carbon Footprint</p>
+    </header>
+
+    <main class="container mx-auto mt-8 p-4">
+        <section class="data-section">
+            <h2>What is CO2?</h2>
+            <p>
+                Carbon dioxide (CO2) is a greenhouse gas that is released into the Earth's atmosphere through various natural processes and human activities.  It plays a crucial role in the Earth's climate system by trapping heat. While some CO2 is essential for life, excessive amounts contribute to global warming and climate change.
+            </p>
+        </section>
+
+        <section class="data-section">
+            <h2>Sources of CO2 Emissions</h2>
+            <p>
+               CO2 emissions come from a variety of sources, including:
+            </p>
+            <ul class="list-disc list-inside mt-4">
+                <li>Burning fossil fuels (coal, oil, and natural gas) for energy production, transportation, and industrial processes</li>
+                <li>Deforestation and land-use changes</li>
+                <li>Industrial processes such as cement production</li>
+                <li>Agriculture and livestock farming</li>
+            </ul>
+        </section>
+
+        <section class="data-section">
+            <h2>Historical CO2 Emissions</h2>
+            <p>
+                Here's a look at the trend of CO2 emissions over past years.
+            </p>
+            <div class="chart-container">
+                <canvas id="historicalChartCanvas"></canvas>
+            </div>
+        </section>
+
+        <section class="data-section" id="realtimeDataSection">
+            <h2>Real-Time CO2 Emissions</h2>
+            <p>
+                Here's a chart showing CO2 emissions.
+            </p>
+             <div class="chart-container">
+                <canvas id="realtimeChartCanvas"></canvas>
+            </div>
+            <p>
+                <strong>Disclaimer:</strong> Real-time CO2 data is complex and can vary based on the source.  The data and chart below are examples. For accurate, up-to-date information, please refer to official sources like the <a href="https://www.co2.earth/" target="_blank" class="text-blue-500 hover:underline">CO2.earth</a> or the <a href="https://gml.noaa.gov/ccgg/trends/" target="_blank" class="text-blue-500 hover:underline">NOAA Earth System Research Laboratories.</a>
+            </p>
+        </section>
+
+        <section class="data-section">
+            <h2>Effects of CO2 Emissions</h2>
+            <p>
+                The increase in CO2 emissions has significant consequences:
+            </p>
+            <ul class="list-disc list-inside mt-4">
+                <li>Global warming, leading to rising temperatures</li>
+                <li>Changes in weather patterns, including more extreme events</li>
+                <li>Sea-level rise, threatening coastal areas</li>
+                <li>Ocean acidification, harming marine life</li>
+                <li>Impacts on agriculture, water resources, and human health</li>
+            </ul>
+        </section>
+
+        <section class="data-section">
+            <h2>How to Reduce CO2 Emissions</h2>
+            <p>
+                We can take action to reduce CO2 emissions:
+            </p>
+            <ul class="list-disc list-inside mt-4">
+                <li>Transition to renewable energy sources (solar, wind, hydro)</li>
+                <li>Improve energy efficiency in buildings, transportation, and industry</li>
+                <li>Adopt sustainable transportation (electric vehicles, public transport, cycling)</li>
+                <li>Reduce deforestation and promote reforestation</li>
+                <li>Support sustainable agriculture and reduce food waste</li>
+                <li>Implement carbon capture and storage technologies</li>
+                <li>Individual actions: reduce energy consumption, adopt a plant-rich diet, and make sustainable choices</li>
+            </ul>
+        </section>
+
+        <section class="data-section">
+            <h2>CO2 Emissions by Country</h2>
+            <p>
+                Here's a look at CO2 emissions for some of the world's largest emitters.
+            </p>
+            <div class="data-container">
+                <div class="data-card">
+                    <h3>China</h3>
+                    <p>Annual CO2 Emissions: 11,696 million tonnes</p>
+                </div>
+                <div class="data-card">
+                    <h3>United States</h3>
+                    <p>Annual CO2 Emissions: 5,107 million tonnes</p>
+                </div>
+                <div class="data-card">
+                    <h3>India</h3>
+                    <p>Annual CO2 Emissions: 2,676 million tonnes</p>
+                </div>
+                 <div class="data-card">
+                    <h3>Russia</h3>
+                    <p>Annual CO2 Emissions: 1,847 million tonnes</p>
+                </div>
+                 <div class="data-card">
+                    <h3>Japan</h3>
+                    <p>Annual CO2 Emissions: 1,067 million tonnes</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="data-section">
+            <h2>About Earth</h2>
+            <p>
+                Earth, our home planet, is a unique celestial body in our solar system.  It is the third planet from the Sun and the only known place in the universe with life.
+            </p>
+            <div class="data-container">
+                <div class="data-card">
+                    <h3>Atmosphere</h3>
+                    <p>
+                        Earth's atmosphere is composed primarily of nitrogen (about 78%) and oxygen (about 21%), with small amounts of other gases, including CO2. The atmosphere protects us from harmful solar radiation and helps regulate the planet's temperature.
+                    </p>
+                </div>
+                <div class="data-card">
+                    <h3>Oceans</h3>
+                     <p>
+                        Approximately 71% of Earth's surface is covered by oceans. They play a vital role in regulating climate, absorbing CO2, and supporting a vast array of marine life.
+                     </p>
+                </div>
+                <div class="data-card">
+                    <h3>Biosphere</h3>
+                    <p>
+                       The biosphere is the global ecological system integrating all living beings and their relationships, including their interaction with the elements of the lithosphere, hydrosphere, and atmosphere.
+                    </p>
+                </div>
+                 <div class="data-card">
+                    <h3>Climate</h3>
+                    <p>
+                       Earth's climate is dynamic and complex, influenced by factors such as solar radiation, atmospheric composition, ocean currents, and geological activity.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-4 text-center rounded-t-md shadow-md">
+        <p>© 2025 CO2 Emissions Tracker. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // --- Historical Data Chart ---
+        const historicalDataCtx = document.getElementById('historicalChartCanvas').getContext('2d');
+        const historicalChart = new Chart(historicalDataCtx, {
+            type: 'line',
+            data: {
+                labels: ['1990', '2000', '2010', '2020', '2023'],
+                datasets: [{
+                    label: 'Global CO2 Emissions (Gigatons)',
+                    data: [22, 25, 31, 36, 38],
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 2,
+                    pointRadius: 5,
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    fill: true,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuad'
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                title: {
+                    display: true,
+                    text: 'Historical Global CO2 Emissions',
+                    fontColor: '#f8fafc',
+                    fontSize: 16
+                },
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        fontColor: '#d1d5db'
+                    }
+                },
+                scales: {
+                    xAxes: [{
+                        gridLines: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            fontColor: '#d1d5db'
+                        }
+                    }],
+                    yAxes: [{
+                        gridLines: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            fontColor: '#d1d5db',
+                            beginAtZero: true
+                        },
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Gigatons of CO2',
+                            fontColor: '#d1d5db'
+                        }
+                    }]
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuad'
+                }
+            }
+        });
+
+        // --- Real-time Data Chart (Simulated) ---
+        const realtimeDataCtx = document.getElementById('realtimeChartCanvas').getContext('2d');
+        let timeLabels = [];
+        let emissionsData = [];
+        const realtimeChart = new Chart(realtimeDataCtx, {
+            type: 'line',
+            data: {
+                labels: timeLabels,
+                datasets: [{
+                    label: 'CO2 Emissions (ppm)',
+                    data: emissionsData,
+                    backgroundColor: 'rgba(52, 211, 153, 0.2)',
+                    borderColor: 'rgba(52, 211, 153, 1)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: true,
+                     animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuad'
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                title: {
+                    display: true,
+                    text: 'Simulated Real-Time CO2 Emissions',
+                    fontColor: '#f8fafc',
+                    fontSize: 16
+                },
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        fontColor: '#d1d5db'
+                    }
+                },
+                scales: {
+                    xAxes: [{
+                        gridLines: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            fontColor: '#d1d5db',
+                            maxRotation: 0,
+                            minRotation: 0
+                        }
+                    }],
+                    yAxes: [{
+                        gridLines: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            fontColor: '#d1d5db',
+                            beginAtZero: true
+                        },
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Parts per million (ppm)',
+                            fontColor: '#d1d5db'
+                        }
+                    }]
+                },
+                animation: false,
+            }
+        });
+
+        // Simulate real-time data updates
+        function updateRealtimeData() {
+            const now = new Date();
+            const time = now.toLocaleTimeString();
+            const newEmissionData = 400 + Math.random() * 20;
+
+            timeLabels.push(time);
+            emissionsData.push(newEmissionData);
+
+            if (timeLabels.length > 20) {
+                timeLabels.shift();
+                emissionsData.shift();
+            }
+
+            realtimeChart.data.labels = timeLabels;
+            realtimeChart.data.datasets[0].data = emissionsData;
+            realtimeChart.update();
+        }
+
+        setInterval(updateRealtimeData, 2000);
+
+    </script>
+</body>
+</html>
